@@ -1,0 +1,2 @@
+DATA_FILE_PATH: "data/requirements.csv"
+SECRETS_FILE_PATH: "secrets/.env"
