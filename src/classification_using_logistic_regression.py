@@ -137,7 +137,6 @@ def main():
         result = run_logistic_regression(X_tfidf, y_filtered, param_grid)
 
         # Log results
-        logging.info(f"Best Parameters: {result['Best Params']}")
         logging.info(f"Macro Precision: {result['Precision']:.3f}, Recall: {result['Recall']:.3f}, F1 Score: {result['F1 Score']:.3f}")
         print('\n')
 
