@@ -4,102 +4,66 @@ import math
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_distances
 
-
 class MRR_NDCG:
-    """
-    A class to compute Mean Reciprocal Rank (MRR) and Normalized Discounted Cumulative Gain (NDCG).
-    """
-
-    def compute_cosine_distances(self, doc_term_matrix):
-        """
-        Compute the pairwise cosine distances for the given document-term matrix.
-
-        Args:
-            doc_term_matrix: A 2D array or DataFrame representing the document-term matrix.
-
-        Returns:
-            A 2D array of cosine distances.
-        """
-        return cosine_distances(pd.DataFrame(doc_term_matrix))
-
+    
     def MRR(self, doc_term_matrix, labels):
-        """
-        Compute the Mean Reciprocal Rank (MRR) for the given document-term matrix and labels.
-
-        Args:
-            doc_term_matrix: A 2D array or DataFrame representing the document-term matrix.
-            labels: A list of labels corresponding to the documents.
-
-        Returns:
-            The Mean Reciprocal Rank (MRR) as a float.
-        """
-        distances = self.compute_cosine_distances(doc_term_matrix)
+        """Mean Reciprocal Rank (MRR)"""
+        dr = pd.DataFrame(doc_term_matrix)
+        distance_matrix = cosine_distances(dr, dr)
         reciprocal_ranks = []
-
-        for i in tqdm(range(len(distances)), desc="Calculating MRR"):
-            # Collect distances and labels for all other documents
-            other_distances = []
-            other_labels = []
-            for j in range(len(distances)):
-                if i != j:
-                    other_distances.append(distances[i][j])
-                    other_labels.append(labels[j])
-
-            # Create a DataFrame of distances and labels, and sort by distance
-            ranked_df = pd.DataFrame(
-                list(zip(other_distances, other_labels)), columns=["distance", "label"]
-            ).sort_values("distance")
-
-            # Find the rank of the first relevant document
-            for rank, label in enumerate(ranked_df["label"], start=1):
-                if labels[i] == label:
+        
+        for x in tqdm(range(len(distance_matrix))):
+            distances, label_list = [], []
+            rank = 1
+            
+            for y in range(len(distance_matrix)):
+                if x != y:
+                    distances.append(distance_matrix[x][y])
+                    label_list.append(labels[y])
+            
+            sorted_df = pd.DataFrame({'distance': distances, 'label': label_list})
+            sorted_df = sorted_df.sort_values('distance')
+            
+            for rank, label in enumerate(sorted_df['label'], start=1):
+                if labels[x] == label:
                     reciprocal_ranks.append(1 / rank)
                     break
-
+        
         return round(np.mean(reciprocal_ranks), 3)
-
-    def NDCG(self, doc_term_matrix, labels):
-        """
-        Compute the Normalized Discounted Cumulative Gain (NDCG) for the given document-term matrix and labels.
-
-        Args:
-            doc_term_matrix: A 2D array or DataFrame representing the document-term matrix.
-            labels: A list of labels corresponding to the documents.
-
-        Returns:
-            The Normalized Discounted Cumulative Gain (NDCG) as a float.
-        """
-        distances = self.compute_cosine_distances(doc_term_matrix)
+          
+    #### Normalized Discounted Cumulative Gain (NDCG) ####            
+    def NDCG(self, doc_term_matrix, vect, labels):
+        dr = pd.DataFrame(doc_term_matrix)
+        aa = cosine_distances(dr, dr)
         ndcg_scores = []
 
-        for i in tqdm(range(len(distances)), desc="Calculating NDCG"):
-            # Collect distances and labels for all other documents
-            other_distances = []
-            other_labels = []
-            for j in range(len(distances)):
-                if i != j:
-                    other_distances.append(distances[i][j])
-                    other_labels.append(labels[j])
+        for x in tqdm(range(len(aa))):
+            distances = []
+            label_list = []
+            dcg, idcg = [], []
+            rank_dcg, rank_idcg = 1, 1
 
-            # Create a DataFrame of distances and labels, and sort by distance
-            ranked_df = pd.DataFrame(
-                list(zip(other_distances, other_labels)), columns=["distance", "label"]
-            ).sort_values("distance")
+            for y in range(len(aa)):
+                if x != y:
+                    distances.append(aa[x][y])
+                    label_list.append(labels[y])
 
-            # Compute DCG
-            dcg = 0
-            for rank, label in enumerate(ranked_df["label"], start=1):
-                if labels[i] == label:
-                    dcg += 1 / math.log2(rank + 1)
+            sorted_df = pd.DataFrame(list(zip(distances, label_list)), columns=['distance', 'label'])
+            sorted_df = sorted_df.sort_values('distance')
 
-            # Compute IDCG
-            ideal_labels = sorted(other_labels, key=lambda x: x == labels[i], reverse=True)
-            idcg = 0
-            for rank, label in enumerate(ideal_labels, start=1):
-                if labels[i] == label:
-                    idcg += 1 / math.log2(rank + 1)
+            true_labels = list(labels[:x]) + list(labels[x+1:])
+            sorted_labels = sorted_df['label'].tolist()
 
-            # Compute NDCG
-            ndcg_scores.append(dcg / idcg if idcg > 0 else 0)
+            for b, label in enumerate(sorted_labels):
+                if label == true_labels[b]:
+                    dcg.append(1 / math.log2(rank_dcg + 1))
+                rank_dcg += 1
+
+            for b, label in enumerate(sorted_labels):
+                if label == true_labels[b]:
+                    idcg.append(1 / math.log2(rank_idcg + 1))
+                    rank_idcg += 1
+
+            ndcg_scores.append(np.sum(dcg) / np.sum(idcg) if np.sum(idcg) != 0 else 0)
 
         return round(np.mean(ndcg_scores), 3)
