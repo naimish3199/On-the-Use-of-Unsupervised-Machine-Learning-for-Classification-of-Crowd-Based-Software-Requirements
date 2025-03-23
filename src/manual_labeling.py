@@ -3,160 +3,139 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.feature_extraction.text import CountVectorizer
 from bertopic import BERTopic
 from bertopic.vectorizers import ClassTfidfTransformer
-from scipy.cluster.hierarchy import dendrogram, linkage
 import numpy as np
 import pandas as pd
+import logging
+from itertools import combinations
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-class ManualBertopic:
-    """
-    A class to perform manual clustering and topic modeling using BERTopic.
-    """
-
+class ManualLabeling:
     def __init__(self):
-        self.vectorizer_model = CountVectorizer(stop_words="english")
+        self.categories = None
+        self.combinations = None
+        self.vectorizer = CountVectorizer(stop_words="english")
         self.ctfidf_model = ClassTfidfTransformer()
-        self.topic_model = BERTopic(
-            vectorizer_model=self.vectorizer_model,
-            ctfidf_model=self.ctfidf_model,
-            nr_topics=2,
-        )
+        self.topic_model = None
 
-    def generate_combinations(self, merged, number):
+    def generate_combinations(self, number, merged):
         """
-        Generate combinations of categories based on the number of clusters and whether categories are merged.
-
-        Args:
-            merged (bool): Whether categories are merged.
-            number (int): Number of clusters.
-
-        Returns:
-            tuple: A tuple containing the category names and their combinations.
+        Generate combinations of categories based on the number of clusters and merged status.
         """
         if not merged:
-            categories = ["health", "energy", "entertainment", "safety", "other"]
+            self.categories = ['health', 'energy', 'entertainment', 'safety', 'other']
         else:
-            categories = ["health+other", "energy", "entertainment", "safety"]
+            self.categories = ['health+other', 'energy', 'entertainment', 'safety']
+        
+        self.combinations = list(combinations(range(len(self.categories)), number))
 
-        combinations = {
-            2: [[i, j] for i in range(len(categories)) for j in range(i + 1, len(categories))],
-            3: [[i, j, k] for i in range(len(categories)) for j in range(i + 1, len(categories)) for k in range(j + 1, len(categories))],
-            4: [[i, j, k, l] for i in range(len(categories)) for j in range(i + 1, len(categories)) for k in range(j + 1, len(categories)) for l in range(k + 1, len(categories))],
-            5: [[i, j, k, l, m] for i in range(len(categories)) for j in range(i + 1, len(categories)) for k in range(j + 1, len(categories)) for l in range(k + 1, len(categories)) for m in range(l + 1, len(categories))],
+    def perform_clustering(self, embeddings, num_clusters, method):
+        """Perform clustering using specified method"""
+        if method == "kmeans":
+            clusterer = KMeans(n_clusters=num_clusters, random_state=42)
+        elif method == "hac":
+            clusterer = AgglomerativeClustering(
+                n_clusters=num_clusters, 
+                affinity='euclidean', 
+                linkage='ward'
+            )
+        else:
+            raise ValueError(f"Unsupported clustering method: {method}")
+            
+        return clusterer.fit_predict(embeddings)
+
+    def extract_topics(self, texts, embeddings):
+        """Extract topics using BERTopic"""
+        self.topic_model = BERTopic(
+            vectorizer_model=self.vectorizer,
+            ctfidf_model=self.ctfidf_model,
+            nr_topics=2
+        )
+        
+        topics, _ = self.topic_model.fit_transform(texts, embeddings)
+        return [word for word, _ in self.topic_model.get_topic(0)]
+
+    def evaluate_clusters(self, true_labels, predicted_labels):
+        """Calculate clustering evaluation metrics"""
+        metrics = {
+            'precision': precision_score(true_labels, predicted_labels, average='macro'),
+            'recall': recall_score(true_labels, predicted_labels, average='macro'),
+            'f1-score': f1_score(true_labels, predicted_labels, average='macro')
         }
+        return pd.DataFrame([{k: round(v, 3) for k, v in metrics.items()}])
 
-        return categories, combinations.get(number, [])
-
-    def filter_data(self, labels, embeddings, corpus, selected_indices):
-        """
-        Filter data based on selected category indices.
-
-        Args:
-            labels (list): Original labels.
-            embeddings (list): Original embeddings.
-            corpus (list): Original corpus.
-            selected_indices (list): Selected category indices.
-
-        Returns:
-            tuple: Filtered labels, embeddings, and corpus.
-        """
-        filtered_labels, filtered_embeddings, filtered_corpus = [], [], []
-
-        for i in range(len(labels)):
-            if labels[i] in selected_indices:
-                filtered_labels.append(labels[i])
-                filtered_embeddings.append(embeddings[i])
-                filtered_corpus.append(corpus[i])
+    def process_combination(self, combination, labels, embeddings, corpus, num_clusters):
+        """Process a single category combination"""
+        # Convert embeddings to numpy array if not already
+        embeddings = np.array(embeddings)
+        
+        # Create mask for filtering
+        mask = np.array([label in combination for label in labels])
+        
+        # Filter data using integer indexing
+        indices = np.where(mask)[0]
+        filtered_embeddings = embeddings[indices]
+        filtered_corpus = [corpus[i] for i in indices]
+        filtered_labels = [labels[i] for i in indices]
 
         # Map labels to sequential integers
-        label_mapping = {index: idx for idx, index in enumerate(selected_indices)}
+        label_mapping = {old: new for new, old in enumerate(combination)}
         filtered_labels = [label_mapping[label] for label in filtered_labels]
 
         return filtered_labels, filtered_embeddings, filtered_corpus
 
-    def perform_clustering(self, clustering_method, num_clusters, embeddings):
-        """
-        Perform clustering using the specified method.
-
-        Args:
-            clustering_method (str): Clustering method ('kmeans' or 'hac').
-            num_clusters (int): Number of clusters.
-            embeddings (list): Embeddings to cluster.
-
-        Returns:
-            list: Predicted cluster labels.
-        """
-        if clustering_method == "kmeans":
-            model = KMeans(n_clusters=num_clusters, random_state=42)
-            return model.fit_predict(embeddings)
-        elif clustering_method == "hac":
-            model = AgglomerativeClustering(n_clusters=num_clusters, affinity="euclidean", linkage="ward")
-            return model.fit_predict(embeddings)
-        else:
-            raise ValueError("Invalid clustering method. Choose 'kmeans' or 'hac'.")
-
-    def display_topics(self, clusters, embeddings):
-        """
-        Display topics for each cluster using BERTopic.
-
-        Args:
-            clusters (list): List of clusters.
-            embeddings (list): Embeddings for each cluster.
-        """
-        for cluster_idx, cluster_data in enumerate(clusters):
-            cluster_embeddings = np.array([embeddings[i] for i in cluster_data])
-            topics, _ = self.topic_model.fit_transform(cluster_data, cluster_embeddings)
-            topic_words = [word for word, _ in self.topic_model.get_topic(0)]
-            print(f"Cluster {cluster_idx} -> {', '.join(topic_words)}")
-
-    def evaluate_clustering(self, true_labels, predicted_labels):
-        """
-        Evaluate clustering performance using precision, recall, and F1-score.
-
-        Args:
-            true_labels (list): True labels.
-            predicted_labels (list): Predicted labels.
-
-        Returns:
-            dict: Precision, recall, and F1-score.
-        """
-        precision = round(precision_score(true_labels, predicted_labels, average="macro"), 3)
-        recall = round(recall_score(true_labels, predicted_labels, average="macro"), 3)
-        f1 = round(f1_score(true_labels, predicted_labels, average="macro"), 3)
-        return {"precision": precision, "recall": recall, "f1-score": f1}
-
-    def results(self, number, clustering, labels, embeddings, corpus, merged):
-        """
-        Main method to perform clustering and topic modeling.
-
-        Args:
-            number (int): Number of clusters.
-            clustering (str): Clustering method ('kmeans' or 'hac').
-            labels (list): Original labels.
-            embeddings (list): Original embeddings.
-            corpus (list): Original corpus.
-            merged (bool): Whether categories are merged.
-        """
-        categories, combinations = self.generate_combinations(merged, number)
-
-        for combination in combinations:
-            print(f"Processing combination: {', '.join([categories[i] for i in combination])}\n")
-
-            # Filter data for the current combination
-            filtered_labels, filtered_embeddings, filtered_corpus = self.filter_data(labels, embeddings, corpus, combination)
-
+    def results(self, number, clustering, labels, embedd, corp, merged):
+        """Main method to run the manual BERTopic classification"""
+        self.generate_combinations(number, merged)
+        
+        for combination in self.combinations:
+            category_names = [self.categories[i] for i in combination]
+            logging.info(f"\nProcessing combination: {' '.join(category_names)}")
+            
+            # Process combination
+            filtered_labels, filtered_embeddings, filtered_corpus = self.process_combination(
+                combination, labels, embedd, corp, number
+            )
+            
             # Perform clustering
-            predicted_labels = self.perform_clustering(clustering, number, filtered_embeddings)
+            predictions = self.perform_clustering(filtered_embeddings, number, clustering)
 
-            # Group data by clusters
-            clusters = [[] for _ in range(number)]
-            for idx, cluster_label in enumerate(predicted_labels):
-                clusters[cluster_label].append(filtered_corpus[idx])
+            # Get cluster texts and extract topics
+            cluster_texts = [[] for _ in range(number)]
+            cluster_embeddings = [[] for _ in range(number)]
+            for idx, cluster_id in enumerate(predictions):
+                cluster_texts[cluster_id].append(filtered_corpus[idx])
+                cluster_embeddings[cluster_id].append(filtered_embeddings[idx])
 
-            # Display topics for each cluster
-            self.display_topics(clusters, filtered_embeddings)
-
-            # Evaluate clustering performance
-            evaluation_metrics = self.evaluate_clustering(filtered_labels, predicted_labels)
-            print(pd.DataFrame([evaluation_metrics]))
-            print("\n")
+            # Extract and display topics
+            for cluster_idx in range(number):
+                if cluster_texts[cluster_idx]:
+                    topics = self.extract_topics(
+                        cluster_texts[cluster_idx],
+                        np.array(cluster_embeddings[cluster_idx])
+                    )
+                    logging.info(f"Cluster {cluster_idx} topics: {', '.join(topics)}")
+            
+            # Get manual labels
+            print("\nAssign labels to clusters:")
+            for i, cat in enumerate(category_names):
+                print(f"Enter {i} for {cat}")
+            
+            cluster_labels = list(map(
+                int, 
+                input("\nEnter labels (space-separated): ").split()
+            ))
+            
+            # Map predictions to final labels
+            final_predictions = np.zeros_like(predictions)
+            for cluster_idx, label in enumerate(cluster_labels):
+                final_predictions[predictions == cluster_idx] = label
+            
+            # Evaluate and display results
+            results = self.evaluate_clusters(filtered_labels, final_predictions)
+            print("\nResults:")
+            print(results)
+            print('\n')

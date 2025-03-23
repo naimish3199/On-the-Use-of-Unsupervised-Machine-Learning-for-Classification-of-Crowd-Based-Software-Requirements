@@ -1,1 +1,5 @@
 secrets/
+src/__pycache__/
+src/.ipynb_checkpoints/
+venv/
+__pycache__/

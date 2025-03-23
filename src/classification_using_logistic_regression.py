@@ -137,26 +137,8 @@ def main():
         result = run_logistic_regression(X_tfidf, y_filtered, param_grid)
 
         # Log results
-        logging.info(f"Best Parameters: {result['Best Params']}")
         logging.info(f"Macro Precision: {result['Precision']:.3f}, Recall: {result['Recall']:.3f}, F1 Score: {result['F1 Score']:.3f}")
-
-        # Store results
-        results.append({
-            "Classes": [mapping[i] for i in classes],
-            "Precision": result["Precision"],
-            "Recall": result["Recall"],
-            "F1 Score": result["F1 Score"],
-            "Best Params": result["Best Params"]
-        })
-
-        # Store the best result based on F1-score
-        if result["Best Model"]:
-            best_results.append({
-                "Classes": [mapping[i] for i in classes],
-                "Best Model": result["Best Model"],
-                "F1 Score": result["F1 Score"],
-                "Best Params": result["Best Params"]
-            })
+        print('\n')
 
 if __name__ == "__main__":
     main()

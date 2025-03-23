@@ -6,6 +6,16 @@ from tqdm import tqdm
 import os
 import yaml
 from dotenv import load_dotenv
+# Download necessary NLTK data
+nltk.download('stopwords', quiet=True)
+nltk.download('wordnet', quiet=True)
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
+
+# Import preprocessing module
+from preprocessing import Preprocessing
+preprocess = Preprocessing()
 
 def load_hf_token():
     """
@@ -30,17 +40,6 @@ def load_hf_token():
         raise ValueError("Hugging Face token not found in .env file. Please add 'HF_TOKEN=your_token' to the .env file.")
     
     return hf_token
-
-# Download necessary NLTK data
-nltk.download('stopwords', quiet=True)
-nltk.download('wordnet', quiet=True)
-
-# Suppress warnings
-warnings.filterwarnings("ignore")
-
-# Import preprocessing module
-from preprocessing import Preprocessing
-preprocess = Preprocessing()
 
 def get_config(config_path="config/config.yaml"):
     """

@@ -46,10 +46,10 @@ class AutomatedLabeling:
                 )[0][0]
         
         # Assign vectors to clusters
-        assigned_vectors = self._assign_vectors(num_clusters, num_vectors)
+        assigned_vectors = self.assign_vectors(num_clusters, num_vectors)
         return [assigned_vectors[i] for i in range(num_clusters)]
 
-    def _assign_vectors(self, num_clusters, num_vectors):
+    def assign_vectors(self, num_clusters, num_vectors):
         """
         Helper method to assign vectors to clusters using similarity matrix.
         """
@@ -66,11 +66,11 @@ class AutomatedLabeling:
             assigned_vectors[cluster_idx] = vector_idx
             
             # Update similarity matrix
-            self._update_similarity_matrix(cluster_idx, vector_idx)
+            self.update_similarity_matrix(cluster_idx, vector_idx)
         
         return assigned_vectors
 
-    def _update_similarity_matrix(self, cluster_idx, vector_idx):
+    def update_similarity_matrix(self, cluster_idx, vector_idx):
         """
         Update similarity matrix after assignment.
         """
@@ -87,7 +87,7 @@ class AutomatedLabeling:
                 predictions[sample_idx] = assigned_idx
         return predictions
 
-    def automated_labelling(self, number, clustering, labels, embeddings, corpus, compare, merged):
+    def results(self, number, clustering, labels, embeddings, corpus, compare, merged):
         """
         Main method to perform automated labeling.
         """
@@ -97,14 +97,14 @@ class AutomatedLabeling:
             print(f"\nProcessing combination: {', '.join([self.categories[i] for i in combination])}")
             
             # Filter data for current combination
-            filtered_data = self._filter_data(labels, embeddings, corpus, combination)
+            filtered_data = self.filter_data(labels, embeddings, corpus, combination)
             filtered_labels, filtered_embeddings, filtered_corpus = filtered_data
             
             # Get vectors for selected categories
             vector_list = [compare[self.categories[i]] for i in combination]
             
             # Perform clustering
-            cluster_indices, cluster_centers = self._perform_clustering(
+            cluster_indices, cluster_centers = self.perform_clustering(
                 clustering, number, filtered_embeddings
             )
             
@@ -115,9 +115,9 @@ class AutomatedLabeling:
             )
             
             # Evaluate results
-            self._evaluate_results(filtered_labels, predictions)
+            self.evaluate_results(filtered_labels, predictions)
 
-    def _filter_data(self, labels, embeddings, corpus, combination):
+    def filter_data(self, labels, embeddings, corpus, combination):
         """
         Filter data based on selected combination.
         """
@@ -134,7 +134,7 @@ class AutomatedLabeling:
         
         return filtered_labels, filtered_embeddings, filtered_corpus
 
-    def _perform_clustering(self, clustering_method, num_clusters, embeddings):
+    def perform_clustering(self, clustering_method, num_clusters, embeddings):
         """
         Perform clustering on embeddings.
         """
@@ -165,7 +165,7 @@ class AutomatedLabeling:
         
         return cluster_indices, cluster_centers
 
-    def _evaluate_results(self, true_labels, predicted_labels):
+    def evaluate_results(self, true_labels, predicted_labels):
         """
         Evaluate clustering results.
         """
@@ -177,4 +177,4 @@ class AutomatedLabeling:
         
         results = pd.DataFrame([{k: round(v, 3) for k, v in metrics.items()}])
         print(results)
-        print()
+        print('\n')
