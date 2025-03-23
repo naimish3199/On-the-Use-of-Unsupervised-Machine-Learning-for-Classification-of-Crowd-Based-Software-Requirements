@@ -175,6 +175,4 @@ class AutomatedLabeling:
             "F1-Score": f1_score(true_labels, predicted_labels, average="macro")
         }
         
-        results = pd.DataFrame([{k: round(v, 3) for k, v in metrics.items()}])
-        print(results)
-        print('\n')
+        print(f"Precision: {metrics['Precision']:.3f}, Recall: {metrics['Recall']:.3f}, F1-Score: {metrics['F1-Score']:.3f}")

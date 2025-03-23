@@ -7,6 +7,8 @@ from gensim.models import Word2Vec
 from sentence_transformers import SentenceTransformer
 import argparse
 from typing import Dict, Any
+import logging
+logging.getLogger("gensim").setLevel(logging.WARNING)
 
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
@@ -21,28 +23,38 @@ preprocess = Preprocessing()
 automatic_labelling = AutomatedLabeling()
 manual_labelling = ManualLabeling()
 
-# Load the data after preprocessing
-df, corpus, corp, all_vocab, freq, wavg, labels, namelabels = import_data()
-
-merged_label = []
-for r in labels:
-    if r == 4:
-        merged_label.append(0)
+def load_embeddings(embedding_type: int, corpus: list, corp: list) -> np.ndarray:
+    """
+    Load embeddings based on specified type
+    Args:
+        embedding_type: 0 for Word2Vec, 1 for SBERT, 2 for SRoBERTa
+        corpus: preprocessed text data for Word2Vec
+        corp: raw text data for transformer models
+    Returns:
+        numpy array of embeddings
+    """
+    if embedding_type == 0:
+        # Word2Vec embeddings
+        word2vec = Word2Vec(corpus, min_count=1,vector_size=100,window=5,sg=1,epochs=30,seed=1)
+        return np.array([
+            np.mean([word2vec.wv[token] for token in x if token in word2vec.wv.index_to_key], axis=0)
+            for x in corpus
+        ])
+    
+    elif embedding_type == 1:
+        # SBERT embeddings
+        sbert = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
+        return sbert.encode(corp)
+    
+    elif embedding_type == 2:
+        # SRoBERTa embeddings
+        sroberta = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
+        return sroberta.encode(corp)
+    
     else:
-        merged_label.append(r)
+        raise ValueError(f"Invalid embedding type: {embedding_type}")
 
-sbert = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
-s_embeddings = sbert.encode(corp)
-
-word2vec = Word2Vec(corpus, min_count = 1,vector_size = 100,window = 5,sg = 1,epochs=30, seed = 1) # 1-> skipgram, 0-> cbow
-avgword2vec = []
-for x in corpus:
-    avgword2vec.append(np.mean([word2vec.wv[token] for token in x if token in word2vec.wv.index_to_key],axis=0))
-
-sroberta = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
-sroberta_emb = sroberta.encode(corp)
-
-def compare_dictionary(embeddings):
+def compare_dictionary(embeddings,namelabels):
 
     health = []
     energy = []
@@ -73,14 +85,11 @@ def compare_dictionary(embeddings):
 
     return compare
 
-embeddings_dict = {0: avgword2vec, 1: s_embeddings, 2: sroberta_emb}
-clustering_dict = {0: 'kmeans', 1: 'hac'}
-
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Clustering for Software Requirements')
     parser.add_argument('--mode', type=int, choices=[0, 1], required=True,
-                       help='0 for manual labelling, 1 for automatic labelling')
+                       help='0 for manual labelling, 1 for automated labelling')
     parser.add_argument('--embedding', type=int, choices=[0, 1, 2], required=True,
                        help='0: Word2Vec, 1: SBERT, 2: SRoBERTa')
     parser.add_argument('--clustering', type=int, choices=[0, 1], required=True,
@@ -99,10 +108,13 @@ def parse_arguments() -> argparse.Namespace:
     
     return args
 
-def run_clustering(config: argparse.Namespace) -> None:
+def run_clustering(config: argparse.Namespace, embeddings_dict, merged_label,labels,corp,corpus,namelabels) -> None:
     """Run clustering with given configuration"""
     embedding = embeddings_dict.get(config.embedding)
-    compare = compare_dictionary(embedding)
+    compare = compare_dictionary(embedding,namelabels)
+            
+    clustering_dict = {0: 'kmeans', 1: 'hac'}
+    
     clustering = clustering_dict.get(config.clustering)
     
     current_labels = merged_label if config.merge else labels
@@ -134,7 +146,23 @@ def run_clustering(config: argparse.Namespace) -> None:
 def main():
     """Main entry point"""
     args = parse_arguments()
-    run_clustering(args)
+    
+    # Load the data after preprocessing
+    df, corpus, corp, all_vocab, freq, wavg, labels, namelabels = import_data()
+
+    merged_label = []
+    for r in labels:
+        if r == 4:
+            merged_label.append(0)
+        else:
+            merged_label.append(r)
+        
+    # Load embeddings based on command line argument
+    embeddings = load_embeddings(args.embedding, corpus, corp)
+    
+    # Store in embeddings dictionary
+    embeddings_dict = {args.embedding: embeddings}    
+    run_clustering(args, embeddings_dict, merged_label, labels, corp, corpus, namelabels)
 
 if __name__ == "__main__":
     main()

@@ -5,13 +5,7 @@ from bertopic import BERTopic
 from bertopic.vectorizers import ClassTfidfTransformer
 import numpy as np
 import pandas as pd
-import logging
 from itertools import combinations
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
 
 class ManualLabeling:
     def __init__(self):
@@ -65,7 +59,7 @@ class ManualLabeling:
             'recall': recall_score(true_labels, predicted_labels, average='macro'),
             'f1-score': f1_score(true_labels, predicted_labels, average='macro')
         }
-        return pd.DataFrame([{k: round(v, 3) for k, v in metrics.items()}])
+        return metrics
 
     def process_combination(self, combination, labels, embeddings, corpus, num_clusters):
         """Process a single category combination"""
@@ -93,7 +87,7 @@ class ManualLabeling:
         
         for combination in self.combinations:
             category_names = [self.categories[i] for i in combination]
-            logging.info(f"\nProcessing combination: {' '.join(category_names)}")
+            print(f"\nProcessing combination: {' '.join(category_names)}")
             
             # Process combination
             filtered_labels, filtered_embeddings, filtered_corpus = self.process_combination(
@@ -117,7 +111,7 @@ class ManualLabeling:
                         cluster_texts[cluster_idx],
                         np.array(cluster_embeddings[cluster_idx])
                     )
-                    logging.info(f"Cluster {cluster_idx} topics: {', '.join(topics)}")
+                    print(f"Cluster {cluster_idx} topics: {', '.join(topics)}")
             
             # Get manual labels
             print("\nAssign labels to clusters:")
@@ -136,6 +130,4 @@ class ManualLabeling:
             
             # Evaluate and display results
             results = self.evaluate_clusters(filtered_labels, final_predictions)
-            print("\nResults:")
-            print(results)
-            print('\n')
+            print(f"Precision: {results['precision']:.3f}, Recall: {results['recall']:.3f}, F1-Score: {results['f1-score']:.3f}")

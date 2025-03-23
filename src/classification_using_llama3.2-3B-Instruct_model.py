@@ -10,7 +10,6 @@ import torch
 from transformers import pipeline
 from tenacity import retry, stop_after_attempt, wait_exponential
 from utils import import_data,load_hf_token, get_class_combinations
-import logging
 from huggingface_hub import login
 from sklearn.metrics import precision_score, recall_score, f1_score
 
@@ -24,17 +23,11 @@ def convert_to_dict(response):
     try:
         return eval(response.replace("```json", "").replace("```", ""))
     except Exception as e:
-        logging.error(f"Error converting response to dict: {e}")
+        print(f"Error converting response to dict: {e}")
         raise
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 # Initialize Hugging Face pipeline
-logging.info("Initializing Hugging Face pipeline...")
+print("Initializing Hugging Face pipeline...")
 # Load the Hugging Face token from the .env file
 hf_token = load_hf_token()
 login(token=hf_token)
@@ -45,7 +38,7 @@ generator = pipeline(
     torch_dtype=torch.bfloat16,
     device_map="auto"
 )
-logging.info("Pipeline initialized successfully.")
+print("Pipeline initialized successfully.")
 
 def message(classes, requirement):
 
@@ -101,7 +94,7 @@ def classify_using_llm(requirement, classes):
     try:
         return convert_to_dict(output)
     except Exception as e:
-        logging.error(f"Error processing requirement: {requirement}. Error: {e}")
+        print(f"Error processing requirement: {requirement}. Error: {e}")
         raise
 
 def classify_requirements(df, classes):
@@ -124,7 +117,7 @@ def classify_requirements(df, classes):
                 df.loc[df['requirements'] == req, 'llm_assigned_category'] = output.get('application category', None)
                 df.loc[df['requirements'] == req, 'llm_rationale'] = output.get('rationale', None)
         except Exception as e:
-            logging.error(f"Error processing requirement '{req}': {e}")
+            print(f"Error processing requirement '{req}': {e}")
 
     return df
 
@@ -161,7 +154,7 @@ def evaluate_classification(df):
         'f1_score': round(f1, 3)
     }
     
-    logging.info(f"Classification Metrics: {metrics}")
+    print(f"Classification Metrics: {metrics}")
     return metrics
 
 def main():
@@ -177,7 +170,7 @@ def main():
     print(all_class_names)
     
     for classes in all_class_names:
-        logging.info(f"Processing classes: {classes}")
+        print(f"Processing classes: {classes}")
         filtered_df = df[df['class'].isin(classes)].reset_index(drop=True)
         filtered_df["llm_assigned_category"] = ""
         filtered_df["llm_rationale"] = ""
@@ -191,7 +184,7 @@ def main():
         # Save results
         output_file = f"classification_({'_'.join(classes)})_using_llm.csv"
         classified_df.to_csv(output_file, index=False)
-        logging.info(f"Results saved to {output_file}")
+        print(f"Results saved to {output_file}")
 
 if __name__ == "__main__":
     main()

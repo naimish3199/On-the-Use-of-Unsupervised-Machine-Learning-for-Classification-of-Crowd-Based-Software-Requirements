@@ -1,14 +1,10 @@
 import numpy as np
 import pandas as pd
-import logging
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.metrics import precision_recall_fscore_support
 from utils import import_data, get_class_combinations
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def run_logistic_regression(X_filtered, y_filtered, param_grid):
     """
@@ -101,7 +97,7 @@ def main():
 
     # Process each class combination
     for classes in class_combinations:
-        logging.info(f"Processing classification for classes: {[mapping[i] for i in classes]}")
+        print(f"Processing classification for classes: {[mapping[i] for i in classes]}")
 
         # Filter dataset for selected classes
         mask = [label in classes for label in labels]
@@ -120,7 +116,7 @@ def main():
         result = run_logistic_regression(X_tfidf, y_filtered, param_grid)
 
         # Log results
-        logging.info(f"Macro Precision: {result['Precision']:.3f}, Recall: {result['Recall']:.3f}, F1 Score: {result['F1 Score']:.3f}")
+        print(f"Macro Precision: {result['Precision']:.3f}, Recall: {result['Recall']:.3f}, F1 Score: {result['F1 Score']:.3f}")
         print('\n')
 
 if __name__ == "__main__":
