@@ -114,5 +114,5 @@ As outlined in the paper, after determining the top 3 performing embeddings on C
 
   ```bash
   cd src
-  python classification_using_logistic_regression.py
+  python classification_using_llama3.2-3B-Instruct_model.py
   ```
