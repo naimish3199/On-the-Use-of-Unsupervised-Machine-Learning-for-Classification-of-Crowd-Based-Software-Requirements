@@ -79,22 +79,40 @@ As outlined in the paper, after determining the top 3 performing embeddings on C
 
 - **Running the Experiments**
 
-To replicate the experiments, execute the `main.py` script located in the `src/` folder. This script requires several command-line arguments to configure the clustering process for software requirements.
+  To replicate the experiments, execute the `main.py` script located in the `src/` folder. This script requires several command-line arguments to configure the clustering process for software requirements.
 
-**Command-Line Arguments:**
+  **Command-Line Arguments:**
 
-| Argument       | Type  | Choices                            | Required | Description                                                                          |
-| -------------- | ----- | ---------------------------------- | -------- | ------------------------------------------------------------------------------------ |
-| `--mode`       | `int` | `0, 1`                             | ✅       | `0` for manual labeling, `1` for automated labeling.                                 |
-| `--embedding`  | `int` | `0, 1, 2`                          | ✅       | Embedding technique: `0` - Word2Vec, `1` - SBERT, `2` - SRoBERTa.                    |
-| `--clustering` | `int` | `0, 1`                             | ✅       | Clustering method: `0` - K-Means, `1` - Hierarchical Agglomerative Clustering (HAC). |
-| `--merge`      | `int` | `0, 1`                             | ✅       | `1` - Merge Health and Other domains, `0` - No merge.                                |
-| `--clusters`   | `int` | (2-4 if merged, 2-5 if not merged) | ✅       | Number of clusters to create.                                                        |
+  | Argument       | Type  | Choices                            | Required | Description                                                                          |
+  | -------------- | ----- | ---------------------------------- | -------- | ------------------------------------------------------------------------------------ |
+  | `--mode`       | `int` | `0, 1`                             | ✅       | `0` for manual labeling, `1` for automated labeling.                                 |
+  | `--embedding`  | `int` | `0, 1, 2`                          | ✅       | Embedding technique: `0` - Word2Vec, `1` - SBERT, `2` - SRoBERTa.                    |
+  | `--clustering` | `int` | `0, 1`                             | ✅       | Clustering method: `0` - K-Means, `1` - Hierarchical Agglomerative Clustering (HAC). |
+  | `--merge`      | `int` | `0, 1`                             | ✅       | `1` - Merge Health and Other domains, `0` - No merge.                                |
+  | `--clusters`   | `int` | (2-4 if merged, 2-5 if not merged) | ✅       | Number of clusters to create.                                                        |
 
-### **Example Usage**
+  **Example Usage**
 
-To run automatic labeling with SRoBERTa embeddings, K-Means clustering, no merging of Health and Other domains, and 3 clusters, use the following command
+  To run automatic labeling with SRoBERTa embeddings, K-Means clustering, no merging of Health and Other domains, and 3 clusters, use the following command
 
-```bash
-python main.py --mode 1 --embedding 2 --clustering 0 --merge 1 --clusters 3
-```
+  ```bash
+  python main.py --mode 1 --embedding 2 --clustering 0 --merge 1 --clusters 3
+  ```
+
+- **Classification using Logistic Regression:**
+
+  To evaluate the performance of classification using Logistic Regression with Stratified 5-Fold Cross-Validation on TF-IDF vectors
+
+  ```bash
+  cd src
+  python classification_using_logistic_regression.py
+  ```
+
+- **Classification using `Llama-3.2-3B-Instruct` model:**
+
+  To evaluate the performance of classification using zero-Shot learning using `Llama-3.2-3B-Instruct` model
+
+  ```bash
+  cd src
+  python classification_using_logistic_regression.py
+  ```
