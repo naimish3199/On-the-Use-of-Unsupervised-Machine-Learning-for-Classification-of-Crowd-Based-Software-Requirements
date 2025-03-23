@@ -6,6 +6,8 @@ from tqdm import tqdm
 import os
 import yaml
 from dotenv import load_dotenv
+import itertools
+
 # Download necessary NLTK data
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
@@ -108,3 +110,20 @@ def import_data():
     corpus, corp, all_vocab, freq, wavg = preprocess.preprocessing(df['requirements'])
 
     return df, corpus, corp, all_vocab, freq, wavg, labels, namelabels
+
+def get_class_combinations(labels):
+    """
+    Generate all possible class combinations for classification.
+
+    Args:
+        labels (list): List of unique class labels.
+
+    Returns:
+        list: List of class combinations.
+    """
+    unique_classes = sorted(set(labels))
+    class_combinations = []
+    for i in range(2, len(unique_classes) + 1):  # Start from binary classification
+        class_combinations.extend(itertools.combinations(unique_classes, i))
+        
+    return class_combinations

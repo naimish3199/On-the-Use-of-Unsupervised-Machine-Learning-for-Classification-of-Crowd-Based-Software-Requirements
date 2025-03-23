@@ -1,4 +1,3 @@
-import itertools
 import numpy as np
 import pandas as pd
 import logging
@@ -6,26 +5,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.metrics import precision_recall_fscore_support
-from utils import import_data
+from utils import import_data, get_class_combinations
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-def get_class_combinations(labels):
-    """
-    Generate all possible class combinations for classification.
-
-    Args:
-        labels (list): List of unique class labels.
-
-    Returns:
-        list: List of class combinations.
-    """
-    unique_classes = sorted(set(labels))
-    class_combinations = []
-    for i in range(2, len(unique_classes) + 1):  # Start from binary classification
-        class_combinations.extend(itertools.combinations(unique_classes, i))
-    return class_combinations
 
 def run_logistic_regression(X_filtered, y_filtered, param_grid):
     """
