@@ -112,6 +112,10 @@ As outlined in the paper, after determining the top 3 performing embeddings on C
 
   To evaluate the performance of classification using zero-Shot learning using `Llama-3.2-3B-Instruct` model
 
+  1. Go to [Hugging Face](https://huggingface.co/) and generate an access token.
+  2. Add the token to the `secrets/.env` file: `HF_TOKEN=<your_huggingface_token_here>`
+  3. Navigate to the src directory and run the classification script:
+
   ```bash
   cd src
   python classification_using_llama3.2-3B-Instruct_model.py
