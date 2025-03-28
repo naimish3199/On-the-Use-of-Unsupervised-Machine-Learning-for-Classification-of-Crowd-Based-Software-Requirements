@@ -32,20 +32,20 @@ class MRR_NDCG:
         return round(np.mean(reciprocal_ranks), 3)
           
     #### Normalized Discounted Cumulative Gain (NDCG) ####            
-    def NDCG(self, doc_term_matrix, vect, labels):
+    def NDCG(self, doc_term_matrix, labels):
         dr = pd.DataFrame(doc_term_matrix)
-        aa = cosine_distances(dr, dr)
+        distance_matrix = cosine_distances(dr, dr)
         ndcg_scores = []
 
-        for x in tqdm(range(len(aa))):
+        for x in tqdm(range(len(distance_matrix))):
             distances = []
             label_list = []
             dcg, idcg = [], []
             rank_dcg, rank_idcg = 1, 1
 
-            for y in range(len(aa)):
+            for y in range(len(distance_matrix)):
                 if x != y:
-                    distances.append(aa[x][y])
+                    distances.append(distance_matrix[x][y])
                     label_list.append(labels[y])
 
             sorted_df = pd.DataFrame(list(zip(distances, label_list)), columns=['distance', 'label'])
