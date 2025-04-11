@@ -96,6 +96,7 @@ As outlined in the paper, after determining the top 3 performing embeddings on C
   To run automatic labeling with SRoBERTa embeddings, K-Means clustering, no merging of Health and Other domains, and 3 clusters, use the following command
 
   ```bash
+  cd src
   python main.py --mode 1 --embedding 2 --clustering 0 --merge 1 --clusters 3
   ```
 
